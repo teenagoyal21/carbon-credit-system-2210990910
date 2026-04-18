@@ -1,0 +1,79 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Carbon Credit Verification System — Docker Compose
+#  Run:  docker compose up --build
+#  Stop: docker compose down
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── 1. Blockchain Node (Node.js) ────────────────────────────────────────────
+  blockchain:
+    build:
+      context: ../blockchain
+      dockerfile: ../docker/Dockerfile.node
+    container_name: carbon-blockchain
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 2. AI Engine (Python Flask) ─────────────────────────────────────────────
+  ai-engine:
+    build:
+      context: ../ai-engine
+      dockerfile: ../docker/Dockerfile.python
+    container_name: carbon-ai
+    ports:
+      - "5001:5001"
+    environment:
+      BLOCKCHAIN_URL: http://blockchain:5002/commit
+      DASHBOARD_URL:  http://dashboard-bus:5003/event
+    depends_on:
+      blockchain:
+        condition: service_healthy
+
+  # ── 3. Dashboard Event Bus (Python Flask) ───────────────────────────────────
+  dashboard-bus:
+    build:
+      context: ../dashboard
+      dockerfile: ../docker/Dockerfile.python
+      args:
+        APP_FILE: dashboard_bus.py
+    container_name: carbon-dashboard-bus
+    ports:
+      - "5003:5003"
+    environment:
+      AI_URL:         http://ai-engine:5001
+      BLOCKCHAIN_URL: http://blockchain:5002
+
+  # ── 4. IoT Simulator (Python) ───────────────────────────────────────────────
+  iot-simulator:
+    build:
+      context: ../iot-simulator
+      dockerfile: ../docker/Dockerfile.python
+      args:
+        APP_FILE: sensor_simulator.py
+    container_name: carbon-iot
+    environment:
+      AI_ENGINE_URL: http://ai-engine:5001/ingest
+    depends_on:
+      - ai-engine
+    restart: unless-stopped
+
+  # ── 5. Dashboard Frontend (Nginx) ───────────────────────────────────────────
+  dashboard-ui:
+    image: nginx:alpine
+    container_name: carbon-dashboard-ui
+    ports:
+      - "8080:80"
+    volumes:
+      - ../dashboard/index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - dashboard-bus

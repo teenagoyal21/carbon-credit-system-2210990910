@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+ARG APP_FILE=app.py
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENV APP_FILE=${APP_FILE}
+CMD python ${APP_FILE}

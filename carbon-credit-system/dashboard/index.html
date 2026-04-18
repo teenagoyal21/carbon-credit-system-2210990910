@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Carbon Credit Verification System</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #050f0a;
+  --surface:  #0b1f13;
+  --surface2: #0f2a1a;
+  --border:   #1a4029;
+  --green:    #00ff7f;
+  --green2:   #00c860;
+  --red:      #ff4455;
+  --amber:    #ffb300;
+  --blue:     #00cfff;
+  --text:     #d4f5e2;
+  --muted:    #4a7a5e;
+  --font-mono: 'Space Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,255,127,0.03);
+  backdrop-filter: blur(8px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.logo h1 {
+  font-family: var(--font-mono);
+  font-size: 14px; font-weight: 700;
+  color: var(--green);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.logo p { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+.header-right { display: flex; align-items: center; gap: 20px; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 11px; font-family: var(--font-mono);
+}
+.status-pill .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s;
+}
+.status-pill.live .dot { background: var(--green); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── Layout ── */
+main { padding: 24px 32px; }
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.kpi:hover { border-color: var(--green2); }
+.kpi::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.kpi.green::before  { background: var(--green); }
+.kpi.red::before    { background: var(--red); }
+.kpi.amber::before  { background: var(--amber); }
+.kpi.blue::before   { background: var(--blue); }
+
+.kpi-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 32px; font-weight: 700;
+  line-height: 1;
+  transition: all 0.3s;
+}
+.kpi.green .kpi-value  { color: var(--green); }
+.kpi.red   .kpi-value  { color: var(--red); }
+.kpi.amber .kpi-value  { color: var(--amber); }
+.kpi.blue  .kpi-value  { color: var(--blue); }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── Grid panels ── */
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 16px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.panel.full { grid-column: 1 / -1; }
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--green);
+}
+.panel-badge {
+  font-family: var(--font-mono);
+  font-size: 10px; padding: 3px 8px;
+  border-radius: 4px; background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* ── Live feed ── */
+#feed {
+  height: 380px;
+  overflow-y: auto;
+  padding: 12px;
+  scroll-behavior: smooth;
+}
+#feed::-webkit-scrollbar { width: 4px; }
+#feed::-webkit-scrollbar-track { background: var(--surface); }
+#feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.feed-row {
+  display: grid;
+  grid-template-columns: 80px 100px 90px 90px 80px 70px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid transparent;
+  animation: slideIn 0.3s ease;
+  transition: background 0.2s;
+}
+.feed-row:hover { background: var(--surface2); }
+@keyframes slideIn { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform:none; } }
+
+.feed-row.valid   { border-color: rgba(0,255,127,0.1); }
+.feed-row.anomaly { background: rgba(255,68,85,0.06); border-color: rgba(255,68,85,0.25); }
+
+.feed-header { color: var(--muted); font-size: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; }
+
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
+.tag.valid   { background: rgba(0,255,127,0.1); color: var(--green); border: 1px solid rgba(0,255,127,0.3); }
+.tag.anomaly { background: rgba(255,68,85,0.12); color: var(--red);   border: 1px solid rgba(255,68,85,0.4); }
+
+/* ── Blockchain ledger ── */
+#ledger-list {
+  height: 380px; overflow-y: auto; padding: 12px;
+}
+.block-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; margin-bottom: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; font-family: var(--font-mono); font-size: 11px;
+  animation: slideIn 0.3s ease;
+}
+.block-num  { color: var(--green); font-weight: 700; min-width: 36px; }
+.block-hash { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.block-co2  { color: var(--blue); min-width: 80px; text-align: right; }
+.block-time { color: var(--muted); font-size: 10px; min-width: 65px; text-align: right; }
+
+/* ── Credits panel ── */
+#credits-list { padding: 16px 20px; }
+.credit-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.credit-row:last-child { border-bottom: none; }
+.credit-sensor { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.credit-badges { display: flex; gap: 8px; align-items: center; }
+.credit-count {
+  font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--amber);
+}
+.credit-acc { font-size: 11px; color: var(--muted); }
+
+/* ── Chart area ── */
+#chart-container {
+  padding: 16px 20px;
+  height: 220px;
+  position: relative;
+}
+canvas#co2chart { width: 100% !important; height: 180px !important; }
+
+/* ── Footer ── */
+footer {
+  margin-top: 32px;
+  padding: 16px 32px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 32px;
+  font-size: 11px; color: var(--muted); font-family: var(--font-mono);
+}
+footer span { display: flex; gap: 6px; align-items: center; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .panels  { grid-template-columns: 1fr; }
+  .panel.full { grid-column: 1; }
+  .feed-row { grid-template-columns: 80px 90px 80px 70px 1fr; }
+  .feed-row > :nth-child(3),
+  .feed-row > :nth-child(5) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <h1>CarbonChain</h1>
+      <p>Blockchain · AI · IoT Verification System</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill" id="conn-status">
+      <div class="dot"></div>
+      <span>CONNECTING</span>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted)" id="clock"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi green">
+      <div class="kpi-label">Total Readings</div>
+      <div class="kpi-value" id="k-total">0</div>
+      <div class="kpi-sub">processed by AI engine</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Valid &amp; Committed</div>
+      <div class="kpi-value" id="k-valid">0</div>
+      <div class="kpi-sub">on-chain blocks</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Anomalies Blocked</div>
+      <div class="kpi-value" id="k-anomaly">0</div>
+      <div class="kpi-sub">rejected by smart contract</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Credits Issued</div>
+      <div class="kpi-value" id="k-credits">0</div>
+      <div class="kpi-sub">carbon credits (×100 kg CO₂)</div>
+    </div>
+  </div>
+
+  <div class="panels">
+
+    <!-- Live Feed -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">⚡ Live Sensor Feed</span>
+        <span class="panel-badge" id="feed-count">0 events</span>
+      </div>
+      <div id="feed">
+        <div class="feed-row feed-header">
+          <span>SENSOR</span><span>CO₂ (ppm)</span><span>ENERGY (kWh)</span>
+          <span>TEMP (°C)</span><span>CONF</span><span>LABEL</span><span>TIME</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CO2 Chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📈 CO₂ Trend</span>
+        <span class="panel-badge">last 30 readings</span>
+      </div>
+      <div id="chart-container">
+        <canvas id="co2chart"></canvas>
+      </div>
+      <div style="display:flex;gap:24px;padding:0 20px 16px;font-size:11px;color:var(--muted);font-family:var(--font-mono)">
+        <span style="color:var(--green)">■</span> Valid readings &nbsp;
+        <span style="color:var(--red)">■</span> Anomaly detected &nbsp;
+        <span style="color:var(--muted)">─ ─</span> 420 ppm baseline
+      </div>
+    </div>
+
+    <!-- Blockchain Ledger -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">⛓ Blockchain Ledger</span>
+        <span class="panel-badge" id="ledger-count">0 blocks</span>
+      </div>
+      <div id="ledger-list"></div>
+    </div>
+
+    <!-- Carbon Credits -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">🏅 Carbon Credits</span>
+        <span class="panel-badge">per facility</span>
+      </div>
+      <div id="credits-list">
+        <p style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center">
+          Waiting for verified reductions…
+        </p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>🟢 IoT Layer: <span id="f-iot">simulated</span></span>
+  <span>🤖 AI Engine: <span id="f-ai">port 5001</span></span>
+  <span>⛓ Blockchain: <span id="f-bc">port 5002</span></span>
+  <span>📊 Dashboard Bus: <span id="f-bus">port 5003</span></span>
+  <span style="margin-left:auto">Teena Goyal · Chitkara University</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const BUS = 'http://localhost:5003';
+let feedCount = 0;
+let kTotal = 0, kValid = 0, kAnomaly = 0, kCredits = 0;
+const co2Data   = [];  // { x: time, y: co2, label }
+const MAX_POINTS = 30;
+
+// ── Clock ──────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
+}, 1000);
+
+// ── Chart ──────────────────────────────────────────────────────────────────────
+const ctx = document.getElementById('co2chart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'CO₂ ppm',
+      data: [],
+      borderColor: '#00ff7f',
+      backgroundColor: 'rgba(0,255,127,0.05)',
+      pointBackgroundColor: [],
+      pointRadius: 4,
+      tension: 0.4,
+      fill: true,
+    }, {
+      label: 'Baseline',
+      data: [],
+      borderColor: '#4a7a5e',
+      borderDash: [5,5],
+      pointRadius: 0,
+      fill: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 300 },
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: '#0b1f13',
+      borderColor: '#1a4029',
+      borderWidth: 1,
+      titleColor: '#00ff7f',
+      bodyColor: '#d4f5e2',
+    }},
+    scales: {
+      x: { ticks: { color: '#4a7a5e', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#0f2a1a' } },
+      y: { ticks: { color: '#4a7a5e', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#0f2a1a' } }
+    }
+  }
+});
+
+function updateChart(reading) {
+  const label  = reading.timestamp ? new Date(reading.timestamp).toLocaleTimeString('en-IN', { hour12: false }) : '--';
+  const isAnom = reading.label === 'ANOMALY';
+  const ds     = chart.data.datasets[0];
+  const ds2    = chart.data.datasets[1];
+
+  chart.data.labels.push(label);
+  ds.data.push(reading.co2_ppm);
+  ds.pointBackgroundColor.push(isAnom ? '#ff4455' : '#00ff7f');
+  ds2.data.push(420);
+
+  if (chart.data.labels.length > MAX_POINTS) {
+    chart.data.labels.shift();
+    ds.data.shift();
+    ds.pointBackgroundColor.shift();
+    ds2.data.shift();
+  }
+  chart.update('none');
+}
+
+// ── Feed row ──────────────────────────────────────────────────────────────────
+function addFeedRow(r) {
+  feedCount++;
+  document.getElementById('feed-count').textContent = `${feedCount} events`;
+
+  const isAnom = r.label === 'ANOMALY';
+  const row    = document.createElement('div');
+  row.className = `feed-row ${isAnom ? 'anomaly' : 'valid'}`;
+  const t = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('en-IN', { hour12: false }) : '--';
+  row.innerHTML = `
+    <span>${r.sensor_id || '—'}</span>
+    <span>${(r.co2_ppm   || 0).toFixed(1)}</span>
+    <span>${(r.energy_kwh|| 0).toFixed(2)}</span>
+    <span>${(r.temp_c    || 0).toFixed(1)}</span>
+    <span>${((r.confidence||0)*100).toFixed(0)}%</span>
+    <span><span class="tag ${isAnom ? 'anomaly' : 'valid'}">${r.label}</span></span>
+    <span style="color:var(--muted);font-size:10px">${t}</span>
+  `;
+  const feed = document.getElementById('feed');
+  // Keep header row
+  const header = feed.querySelector('.feed-header');
+  feed.insertBefore(row, header ? header.nextSibling : feed.firstChild);
+  // Trim
+  while (feed.children.length > 51) feed.removeChild(feed.lastChild);
+}
+
+// ── Ledger row ────────────────────────────────────────────────────────────────
+let blockCount = 0;
+function addBlockRow(r) {
+  blockCount++;
+  document.getElementById('ledger-count').textContent = `${blockCount} blocks`;
+  const row = document.createElement('div');
+  row.className = 'block-row';
+  const hash = r.blockHash || ('0x' + Math.random().toString(16).slice(2, 18));
+  const t    = new Date().toLocaleTimeString('en-IN', { hour12: false });
+  row.innerHTML = `
+    <span class="block-num">#${blockCount}</span>
+    <span class="block-hash" title="${hash}">${hash.substring(0,20)}…</span>
+    <span class="block-co2">${(r.co2_ppm||0).toFixed(1)} ppm</span>
+    <span class="block-time">${t}</span>
+  `;
+  const list = document.getElementById('ledger-list');
+  list.insertBefore(row, list.firstChild);
+  while (list.children.length > 20) list.removeChild(list.lastChild);
+}
+
+// ── Credits ───────────────────────────────────────────────────────────────────
+function updateCredits(credits) {
+  const container = document.getElementById('credits-list');
+  if (!credits || !Object.keys(credits).length) return;
+  container.innerHTML = '';
+  let total = 0;
+  for (const [facility, data] of Object.entries(credits)) {
+    total += data.creditsIssued || 0;
+    const row = document.createElement('div');
+    row.className = 'credit-row';
+    row.innerHTML = `
+      <div>
+        <div class="credit-sensor">${facility}</div>
+        <div class="credit-acc">${((data.accumulatedKg||0)).toFixed(2)} kg accumulated</div>
+      </div>
+      <div class="credit-badges">
+        <span class="credit-count">${data.creditsIssued || 0}</span>
+        <span style="font-size:11px;color:var(--muted)">credits</span>
+      </div>
+    `;
+    container.appendChild(row);
+  }
+  kCredits = total;
+  document.getElementById('k-credits').textContent = total;
+}
+
+// ── SSE Stream ────────────────────────────────────────────────────────────────
+function connect() {
+  const es = new EventSource(`${BUS}/stream`);
+
+  es.onopen = () => {
+    const pill = document.getElementById('conn-status');
+    pill.classList.add('live');
+    pill.querySelector('span').textContent = 'LIVE';
+  };
+
+  es.onmessage = (e) => {
+    let r;
+    try { r = JSON.parse(e.data); } catch { return; }
+    if (r.type === 'connected') return;
+    if (!r.label) return;
+
+    kTotal++;
+    if (r.label === 'VALID')   { kValid++;   addBlockRow(r); }
+    if (r.label === 'ANOMALY') { kAnomaly++; }
+
+    document.getElementById('k-total').textContent   = kTotal;
+    document.getElementById('k-valid').textContent   = kValid;
+    document.getElementById('k-anomaly').textContent = kAnomaly;
+
+    addFeedRow(r);
+    updateChart(r);
+  };
+
+  es.onerror = () => {
+    const pill = document.getElementById('conn-status');
+    pill.classList.remove('live');
+    pill.querySelector('span').textContent = 'OFFLINE';
+    setTimeout(connect, 4000);
+  };
+}
+
+// ── Poll credits & stats ──────────────────────────────────────────────────────
+async function pollStats() {
+  try {
+    const r = await fetch(`${BUS}/credits`);
+    if (r.ok) updateCredits(await r.json());
+  } catch {}
+}
+setInterval(pollStats, 5000);
+pollStats();
+connect();
+</script>
+</body>
+</html>
