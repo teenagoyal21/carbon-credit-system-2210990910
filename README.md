@@ -1,4 +1,4 @@
-# 🌿 Blockchain-Integrated AI Framework for Carbon Credit Verification
+# 🌿 Blockchain Integrated AI Framework for Carbon Credit Verification
 **Teena Goyal | Chitkara University Institute of Engineering & Technology**
 
 ---
@@ -18,7 +18,7 @@
 │   LSTM rolling predictor → XGBoost classifier                    │
 │   Labels: VALID | ANOMALY   Accuracy: ~96%                       │
 └──────────────┬──────────────────────────────┬────────────────────┘
-               │ POST /commit (VALID only)     │ POST /event (all)
+               │ POST /commit (VALID only)    │ POST /event (all)
 ┌──────────────▼──────────────┐  ┌────────────▼───────────────────┐
 │  LAYER 3: Blockchain Node   │  │  Dashboard Event Bus           │
 │  blockchain_node.js  :5002  │  │  dashboard_bus.py       :5003  │
@@ -33,7 +33,7 @@
 
 ---
 
-## Quick Start (Local — No Docker)
+## Quick Start (Local & No Docker)
 
 ### Prerequisites
 - Python 3.10+
@@ -63,7 +63,7 @@ docker compose up --build
 
 ---
 
-## Manual Start (each terminal)
+## Manual Start (separate terminal)
 
 ```bash
 # Terminal 1 — Blockchain Node
